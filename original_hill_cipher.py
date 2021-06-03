@@ -1,121 +1,172 @@
 import numpy as np
+from egcd import egcd
+import random
+from math import gcd as bltin_gcd
+import time
+import os,glob
+
+alphabet = "abcdefghijklmnopqrstuvwxyz"
+
+letter_to_index = dict(zip(alphabet, range(len(alphabet))))
+index_to_letter = dict(zip(range(len(alphabet)), alphabet))
+
+folder_path = '/home/mumu/Desktop/texts'
+
+def coprime2(a, b):
+    return bltin_gcd(a, b) == 1
+
+def generate_matrix(size,modulus):
+    
+    matrix = np.zeros((size,size))
+    for i in range(size):
+        for j in range(size):
+            matrix[i][j] = random.randint(0, modulus-1)
+    
+    det = int(np.round(np.linalg.det(matrix)))  # Step 1)
+
+    if(det%modulus != 0) and (coprime2(modulus,det) == True):
+        return matrix
+    else:
+        return generate_matrix(size,modulus)
 
 
-def encrypt(msg):
-    # Replace spaces with nothing
-    msg = msg.replace(" ", "")
-    # Ask for keyword and get encryption matrix
-    C = make_key()
-    # Append zero if the messsage isn't divisble by 2
-    len_check = len(msg) % 2 == 0
-    if not len_check:
-        msg += "0"
-    # Populate message matrix
-    P = create_matrix_of_integers_from_string(msg)
-    # Calculate length of the message
-    msg_len = int(len(msg) / 2)
-    # Calculate P * C
-    encrypted_msg = ""
-    for i in range(msg_len):
-        # Dot product
-        row_0 = P[0][i] * C[0][0] + P[1][i] * C[0][1]
-        # Modulate and add 65 to get back to the A-Z range in ascii
-        integer = int(row_0 % 26 + 65)
-        # Change back to chr type and add to text
-        encrypted_msg += chr(integer)
-        # Repeat for the second column
-        row_1 = P[0][i] * C[1][0] + P[1][i] * C[1][1]
-        integer = int(row_1 % 26 + 65)
-        encrypted_msg += chr(integer)
-    return encrypted_msg
+def matrix_mod_inv(matrix,size,modulus):
 
-def decrypt(encrypted_msg):
-    # Ask for keyword and get encryption matrix
-    C = make_key()
-    # Inverse matrix
-    determinant = C[0][0] * C[1][1] - C[0][1] * C[1][0]
-    determinant = determinant % 26
-    multiplicative_inverse = find_multiplicative_inverse(determinant)
-    C_inverse = C
-    # Swap a <-> d
-    C_inverse[0][0], C_inverse[1][1] = C_inverse[1, 1], C_inverse[0, 0]
-    # Replace
-    C[0][1] *= -1
-    C[1][0] *= -1
-    for row in range(2):
-        for column in range(2):
-            C_inverse[row][column] *= multiplicative_inverse
-            C_inverse[row][column] = C_inverse[row][column] % 26
+    det = int(np.round(np.linalg.det(matrix)))  # Step 1)
+    #print(det,det%modulus)
 
-    P = create_matrix_of_integers_from_string(encrypted_msg)
-    msg_len = int(len(encrypted_msg) / 2)
-    decrypted_msg = ""
-    for i in range(msg_len):
-        # Dot product
-        column_0 = P[0][i] * C_inverse[0][0] + P[1][i] * C_inverse[0][1]
-        # Modulate and add 65 to get back to the A-Z range in ascii
-        integer = int(column_0 % 26 + 65)
-        # Change back to chr type and add to text
-        decrypted_msg += chr(integer)
-        # Repeat for the second column
-        column_1 = P[0][i] * C_inverse[1][0] + P[1][i] * C_inverse[1][1]
-        integer = int(column_1 % 26 + 65)
-        decrypted_msg += chr(integer)
-    if decrypted_msg[-1] == "0":
-        decrypted_msg = decrypted_msg[:-1]
-    return decrypted_msg
+    det_inv = egcd(det, modulus)[1] % modulus  # Step 2)
+    matrix_modulus_inv = (
+        det_inv * np.round(det * np.linalg.inv(matrix)).astype(int) % modulus
+    )
+    #print("Matrix inverse\n",matrix_modulus_inv)
 
-def find_multiplicative_inverse(determinant):
-    multiplicative_inverse = -1
-    for i in range(26):
-        inverse = determinant * i
-        if inverse % 26 == 1:
-            multiplicative_inverse = i
-            break
-    return multiplicative_inverse
+    return matrix_modulus_inv
 
 
-def make_key():
-     # Make sure cipher determinant is relatively prime to 26 and only a/A - z/Z are given
-    determinant = 0
-    C = None
-    while True:
-        cipher = input("Input 4 letter cipher: ")
-        C = create_matrix_of_integers_from_string(cipher)
-        determinant = C[0][0] * C[1][1] - C[0][1] * C[1][0]
-        determinant = determinant % 26
-        inverse_element = find_multiplicative_inverse(determinant)
-        if inverse_element == -1:
-            print("Determinant is not relatively prime to 26, uninvertible key")
-        elif np.amax(C) > 26 and np.amin(C) < 0:
-            print("Only a-z characters are accepted")
-            print(np.amax(C), np.amin(C))
+def encrypt(message, K):
+    encrypted = ""
+
+    message_in_numbers = []
+    counter = 0
+    for letter in message:
+        letter = letter.lower()      
+        if letter not in alphabet:
+            continue
         else:
-            break
-    return C
+            message_in_numbers.append(letter_to_index[letter])
 
-def create_matrix_of_integers_from_string(string):
-    # Map string to a list of integers a/A <-> 0, b/B <-> 1 ... z/Z <-> 25
-    integers = [chr_to_int(c) for c in string]
-    length = len(integers)
-    M = np.zeros((2, int(length / 2)), dtype=np.int32)
-    iterator = 0
-    for column in range(int(length / 2)):
-        for row in range(2):
-            M[row][column] = integers[iterator]
-            iterator += 1
-    return M
+    x = len(message_in_numbers) % K.shape[0]
+    if x != 0:
+        for i in range(K.shape[0]-x):
+            message_in_numbers.append(0)
 
-def chr_to_int(char):
-    # Uppercase the char to get into range 65-90 in ascii table
-    char = char.upper()
-    # Cast chr to int and subtract 65 to get 0-25
-    integer = ord(char) - 65
-    return integer
+    #print("Message in numbers: "+str(message_in_numbers)+"\n")
+    split_P = [
+        message_in_numbers[i : i + int(K.shape[0])]
+        for i in range(0, len(message_in_numbers), int(K.shape[0]))
+    ]
+    for P in split_P:
+        P = np.transpose(np.asarray(P))[:, np.newaxis]
+        while P.shape[0] != K.shape[0]:
+            P = np.append(P, letter_to_index[" "])[:, np.newaxis]
+        
+        numbers = (np.dot(K, P)) % len(alphabet)
 
-if __name__ == "__main__":
-    msg = input("Message: ")
-    encrypted_msg = encrypt(msg)
-    print(encrypted_msg)
-    decrypted_msg = decrypt(encrypted_msg)
-    print(decrypted_msg)
+        #print("Key Matrix: "+str(K)+"\n")
+        
+        #print("Encrypted data: "+str(numbers)+"\n")
+        n = numbers.shape[0]  # length of encrypted message (in numbers)
+
+        # Map back to get encrypted text
+        for idx in range(n):
+            number = int(numbers[idx, 0])
+            encrypted += index_to_letter[number]
+        counter += 1
+
+    return encrypted
+
+
+def decrypt(cipher, matrix):
+    decrypted = ""
+    cipher_in_numbers = []
+    counter = 0
+
+    for letter in cipher:
+        cipher_in_numbers.append(letter_to_index[letter])
+
+    split_C = [
+        cipher_in_numbers[i : i + int(matrix.shape[0])]
+        for i in range(0, len(cipher_in_numbers), int(matrix.shape[0]))
+    ]
+    
+    #inverse = matrix_mod_inv(Kinv*seed2[counter], len(alphabet))
+    for C in split_C:
+        
+        C = np.transpose(np.asarray(C))[:, np.newaxis]
+        
+        #print(counter+1,".","block of Cipher-text",C)
+        Kinv = matrix_mod_inv(matrix, matrix.shape[0], len(alphabet))
+        numbers = np.dot(Kinv, C) % len(alphabet)
+
+        n = numbers.shape[0]    
+        #print("Deciphered block",numbers)
+        for idx in range(n):
+            number = int(numbers[idx, 0])
+            decrypted += index_to_letter[number]
+        counter += 1
+
+    return decrypted
+
+
+def main():
+    #message = input("""enter message: """)
+
+	for filename in glob.glob(os.path.join(folder_path, '*.txt')): 
+		with open(filename, 'r') as file:
+			input_lines = [line.strip() for line in file]
+				
+		message = str(input_lines)
+
+		generation = time.perf_counter()
+		#matrix = generate_matrix(int(input("Enter block size: ")),len(alphabet))
+		matrix = generate_matrix(3,len(alphabet))
+		print("after\n",matrix)
+
+
+		first_time = time.perf_counter()
+		encrypted_message = encrypt(message, matrix)
+		second_time = time.perf_counter()
+		decrypted_message = decrypt(encrypted_message, matrix)
+		third_time = time.perf_counter()
+
+		encryption_time = second_time - first_time
+		decryption_time = third_time - second_time
+		overall_time = third_time - first_time
+		generation_time = third_time-generation
+
+		#print("Original message: " + message + "\n")
+		#print("Encrypted message: " + encrypted_message + "\n")
+		#print("Decrypted message: " + decrypted_message.upper() + "\n")
+		
+		with open('sifreleme.odt','a') as f:
+			f.write(filename)
+			f.write("\n")
+			f.write("Encryption time ")
+			f.write(str(encryption_time))
+			f.write("\n")
+			f.write("Decryption time ")
+			f.write(str(decryption_time))
+			f.write("\n")
+			f.write("Overall time ",)
+			f.write(str(overall_time))
+			f.write("\n")
+			f.write("Generation time ")
+			f.write(str(generation_time))
+			f.write("\n")
+			f.write("\n")
+
+    #print("Encryption time ",encryption_time,"\n","Decryption time ",decryption_time,"\n","Overall time ",overall_time,"\n","Generation time ",generation_time,"\n")
+        
+
+main()
