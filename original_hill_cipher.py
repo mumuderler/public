@@ -5,7 +5,7 @@ from math import gcd as bltin_gcd
 import time
 import os,glob
 
-alphabet = "abcdefghijklmnopqrstuvwxyz"
+alphabet = "abcdefghijklmnopqrstuvwxyz.!?"
 
 letter_to_index = dict(zip(alphabet, range(len(alphabet))))
 index_to_letter = dict(zip(range(len(alphabet)), alphabet))
@@ -146,8 +146,8 @@ def main():
 		generation_time = third_time-generation
 
 		#print("Original message: " + message + "\n")
-		#print("Encrypted message: " + encrypted_message + "\n")
-		#print("Decrypted message: " + decrypted_message.upper() + "\n")
+		print("Encrypted message: " + encrypted_message + "\n")
+		print("Decrypted message: " + decrypted_message.upper() + "\n")
 		
 		with open('sifreleme.odt','a') as f:
 			f.write(filename)
