@@ -60,7 +60,6 @@ class MainActivity : AppCompatActivity() {
                         var delimiter = " "
 
                         val parts = text?.split(delimiter)
-                        //Toast.makeText(applicationContext, parts?.get(1),Toast.LENGTH_LONG).show()
                         val first = parts?.get(0).toString()   //yonlendir anahtar kelime
                         val second = parts?.get(1).toString()  //tel no
                         val third = parts?.get(2).toString()   //sifre anahtar kelime
@@ -73,22 +72,19 @@ class MainActivity : AppCompatActivity() {
 
                         //yonlendirme if'i
                         if(first == "yonlendir" && contactExists(context!!,second) && third == "sifre" && fourth == "123456"){
-                            //Toast.makeText(applicationContext,"Yaay",Toast.LENGTH_LONG).show()
-                            /*val intent = Intent(Intent.ACTION_CALL)
+                            Toast.makeText(applicationContext,"Yaay",Toast.LENGTH_LONG).show()
+                            val intent = Intent(Intent.ACTION_CALL)
                             var prefix:String = "**21*"
-                            prefix = Uri.encode(prefix)
-                            intent.data = Uri.parse("tel:"+prefix+"05324831428"+"#")
+                            //prefix = Uri.encode(prefix)
+                            intent.data = Uri.parse("tel:"+prefix+second)
                             if(ActivityCompat.checkSelfPermission(
                                     context,
                                     Manifest.permission.CALL_PHONE
                                 ) != PackageManager.PERMISSION_GRANTED){
                                 return
                             }
-                            startActivity(intent)*/
+                            startActivity(intent)
 
-                            val redirection = RedirectionService()
-                            val handle: Uri = 
-                            redirection.onPlaceCall(uri,"02218531",false)
 
                         }
                     }
@@ -122,6 +118,31 @@ class MainActivity : AppCompatActivity() {
             if (cur != null) cur.close()
         }
         return false
+    }
+    @RequiresApi(Build.VERSION_CODES.Q)
+    class RedirectionService : CallRedirectionService() {
+        override fun onPlaceCall(
+            handle: Uri,
+            initialPhoneAccount: PhoneAccountHandle,
+            allowInteractiveResponse: Boolean
+        ) {
+            // Determine if the call should proceed, be redirected, or cancelled.
+            val callShouldProceed = true
+            val callShouldRedirect = false
+            when {
+                callShouldProceed -> {
+                    placeCallUnmodified()
+                }
+                callShouldRedirect -> {
+                    // Update the URI to point to a different phone number or modify the
+                    // PhoneAccountHandle and redirect.
+                    redirectCall(handle, initialPhoneAccount, true)
+                }
+                else -> {
+                    cancelCall()
+                }
+            }
+        }
     }
 
 }
