@@ -1,0 +1,42 @@
+Java Assignment 1
+
+1. Java konsol application olmasını bekliyorum.
+
+data.txt dosyasında asagıdaki formatta initial data var ise program ayağa kalktığında burdan datayı yüklemenizi istiyorum
+
+data.txt örn:
+-------------------------------------------------
+film-sherlock holmes-2010-guy ritchie-aksiyon,macera
+film-braveheart-1995-mel gibson-biyografi,dram,tarih
+
+----------------------------------------------------
+
+Film Class'ı yazmanızı ve datayı bu classı içeren bir listede tutmanızı istiyorum. Liste tercihini size bırakıyorum.
+
+konsol daima açık olmalıdır.
+
+komut listesi,
+
+1.Adım
+
+list film -all //tüm filmleri listelemek için kullanılır
+list film -name "filter" / isminde filter geçen filmleri listele
+list film -year YYYY / belli yıldaki filmleri listele
+list film -genre "genre"/ belli türdeki filmleri listele
+list film -director "director"//sadece belli bir yönetmeni listele  
+
+//uygun film dönmüyorsa "kriterlere uygun herhangi bir film bulunamadı" mesajı basmalıdır.
+
+2.Adım
+insert film "film name-year-director-genre list"
+//bu komutla film ekleyebilmeliyiz
+//eğer aynı isimle film varsa hata vermelidir
+//burda eklediğimiz filmi dosyaya yazmaya gerek yok. Filmleri tuttuğunuz listeye eklemeniz yeterlidir.
+
+3.Adım
+delete film "film name"
+//bu komutla listede tuttuğumuz filmi silebilmeliyiz.
+
+
+
+ 
