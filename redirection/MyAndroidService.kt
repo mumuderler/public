@@ -5,6 +5,7 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -16,6 +17,7 @@ import android.os.IBinder
 import android.provider.ContactsContract
 import android.provider.Telephony
 import android.telephony.SmsMessage
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
@@ -24,7 +26,7 @@ import androidx.core.app.NotificationCompat
 class MyAndroidService: Service() {
 
     override fun onCreate() {
-        super.onCreate()
+        registerScreenoffReceiver()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,4 +55,17 @@ class MyAndroidService: Service() {
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
+
+    private fun registerScreenoffReceiver(){
+        var br_ScreenoffReceiver= object: BroadcastReceiver(){
+            override fun onReceive(context: Context?, intent: Intent?) {
+                Log.d(TAG,"ACTION_SCREEN_OFF")
+
+            }
+
+        }
+        val filter:IntentFilter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        registerReceiver(br_ScreenoffReceiver,filter)
+    }
+
 }
