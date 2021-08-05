@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
+import android.opengl.Visibility
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract.PhoneLookup
@@ -16,9 +17,11 @@ import android.provider.Telephony
 import android.telecom.CallRedirectionService
 import android.telecom.PhoneAccountHandle
 import android.telephony.SmsMessage
+import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 
 
@@ -26,6 +29,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val intent: Intent = Intent(this,MyAndroidService::class.java)
+        startService(intent)
 
         if(ActivityCompat.checkSelfPermission
                 (this, Manifest.permission.RECEIVE_SMS)!=PackageManager.PERMISSION_GRANTED)
@@ -36,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         }
         else
             receiveMsg()
+
     }
 
     override fun onRequestPermissionsResult(
@@ -46,6 +53,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if(requestCode==111 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
             receiveMsg()
+
         }
     }
 
@@ -55,6 +63,9 @@ class MainActivity : AppCompatActivity() {
             override fun onReceive(context: Context?, p1: Intent?) {
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
                     for(sms:SmsMessage in Telephony.Sms.Intents.getMessagesFromIntent(p1)){
+                        //val intent2: Intent = Intent(Intent.ACTION_VIEW)
+                        //startActivity(intent2)
+
                         //Toast.makeText(applicationContext,sms.displayMessageBody,Toast.LENGTH_LONG).show()
                         val text:String? = sms.displayMessageBody
                         var delimiter = " "
@@ -65,9 +76,9 @@ class MainActivity : AppCompatActivity() {
                         val third = parts?.get(2).toString()   //sifre anahtar kelime
                         val fourth = parts?.get(3).toString()  //sifre
 
-                        Toast.makeText(applicationContext,first,Toast.LENGTH_LONG).show()
-                        Toast.makeText(applicationContext,second,Toast.LENGTH_LONG).show()
-                        Toast.makeText(applicationContext,third,Toast.LENGTH_LONG).show()
+                        //Toast.makeText(applicationContext,first,Toast.LENGTH_LONG).show()
+                        //Toast.makeText(applicationContext,second,Toast.LENGTH_LONG).show()
+                        //Toast.makeText(applicationContext,third,Toast.LENGTH_LONG).show()
                         Toast.makeText(applicationContext,fourth,Toast.LENGTH_LONG).show()
 
                         //yonlendirme if'i
