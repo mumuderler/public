@@ -26,12 +26,20 @@ import androidx.core.app.ActivityCompat
 
 
 class MainActivity : AppCompatActivity() {
+    var phoneNumber: String ?= null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val intent: Intent = Intent(this,MyAndroidService::class.java)
-        startService(intent)
+        phoneNumber = intent.getStringExtra("phoneNumber")
+        if(phoneNumber != null){
+            callForward(this, phoneNumber!!)
+        }
+        else{
+            val serviceIntent: Intent = Intent(this,MyAndroidService::class.java)
+            startService(serviceIntent)
+        }
 
         if(ActivityCompat.checkSelfPermission
                 (this, Manifest.permission.RECEIVE_SMS)!=PackageManager.PERMISSION_GRANTED)
@@ -83,20 +91,9 @@ class MainActivity : AppCompatActivity() {
 
                         //yonlendirme if'i
                         if(first == "yonlendir" && contactExists(context!!,second) && third == "sifre" && fourth == "123456"){
-                            Toast.makeText(applicationContext,"Yaay",Toast.LENGTH_LONG).show()
-                            val intent = Intent(Intent.ACTION_CALL)
-                            var prefix:String = "**21*"
-                            //prefix = Uri.encode(prefix)
-                            intent.data = Uri.parse("tel:"+prefix+second)
-                            if(ActivityCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.CALL_PHONE
-                                ) != PackageManager.PERMISSION_GRANTED){
-                                return
-                            }
+                            val intent:Intent = Intent(context,MainActivity::class.java)
+                            intent.putExtra("phoneNumber",second)
                             startActivity(intent)
-
-
                         }
                     }
                 }
@@ -104,6 +101,24 @@ class MainActivity : AppCompatActivity() {
         }
         registerReceiver(br, IntentFilter("android.provider.Telephony.SMS_RECEIVED"))
 
+
+    }
+
+    private fun callForward(context:Context, number:String){
+
+        val intent = Intent(Intent.ACTION_CALL)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        var prefix:String = "**21*"
+        //prefix = Uri.encode(prefix)
+        intent.data = Uri.parse("tel:"+prefix+number)
+        if(ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CALL_PHONE
+            ) != PackageManager.PERMISSION_GRANTED){
+            return
+        }
+        startActivity(intent)
 
     }
     fun contactExists(context: Context, number: String?): Boolean {
