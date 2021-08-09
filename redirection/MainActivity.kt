@@ -2,6 +2,7 @@ package com.example.forwarding
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -20,6 +21,8 @@ import android.telecom.PhoneAccountHandle
 import android.telephony.SmsMessage
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -35,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         phoneNumber = intent.getStringExtra("phoneNumber")
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
 
             if (ActivityCompat.checkSelfPermission(
                     this,
@@ -48,83 +51,75 @@ class MainActivity : AppCompatActivity() {
                 ActivityCompat.checkSelfPermission(
                     this,
                     Manifest.permission.READ_CONTACTS
-                ) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.SYSTEM_ALERT_WINDOW
                 ) != PackageManager.PERMISSION_GRANTED
             ){
 
-                    if (ActivityCompat.checkSelfPermission
-                            (this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
+                if (ActivityCompat.checkSelfPermission
+                        (this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
+                )
+
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS),
+                        111
                     )
+                if (ActivityCompat.checkSelfPermission
+                        (this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
+                )
 
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS),
-                            111
-                        )
-                    else if (ActivityCompat.checkSelfPermission
-                            (this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.CALL_PHONE),
+                        123
                     )
+                if (ActivityCompat.checkSelfPermission
+                        (
+                        this,
+                        Manifest.permission.READ_CONTACTS
+                    ) != PackageManager.PERMISSION_GRANTED
+                )
 
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.CALL_PHONE),
-                            123
-                        )
-                    else if (ActivityCompat.checkSelfPermission
-                            (
-                            this,
-                            Manifest.permission.READ_CONTACTS
-                        ) != PackageManager.PERMISSION_GRANTED
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.READ_CONTACTS),
+                        115
                     )
+                if (!Settings.canDrawOverlays(this)) {
 
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.READ_CONTACTS),
-                            115
-                        )
-                    else if (ActivityCompat.checkSelfPermission
-                            (
-                            this,
-                            Manifest.permission.SYSTEM_ALERT_WINDOW
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.SYSTEM_ALERT_WINDOW),
-                            125
-                        )
-                        val intentAlert = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                        startActivity(intentAlert)
+                    val intentAlert = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                    val startForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult())
+                    { result: ActivityResult ->
+                        if (result.resultCode == Activity.RESULT_OK) {
+                            Toast.makeText(this,"printed",Toast.LENGTH_SHORT).show()
+                        }
 
-                    } else if ("xiaomi" == Build.MANUFACTURER.lowercase(Locale.ROOT)) {
-                        val intent = Intent("miui.intent.action.APP_PERM_EDITOR")
-                        intent.setClassName(
-                            "com.miui.securitycenter",
-                            "com.miui.permcenter.permissions.PermissionsEditorActivity"
-                        )
-                        intent.putExtra("extra_pkgname", getPackageName())
-                        startActivity(intent)
                     }
+                    startForResult.launch(intentAlert)
+                }
+
+
 
             }
+            else {
+                receiveMsg()
+            }
         }
-        else {
-            receiveMsg()
+        else{
+
         }
 
 
-        if(phoneNumber != null){
+
+   /*     if(phoneNumber != null){
             callForward(this, phoneNumber!!)
         }
         else{
             val serviceIntent: Intent = Intent(this,MyAndroidService::class.java)
             startService(serviceIntent)
-        }
+        }*/
 
-
+        val serviceIntent: Intent = Intent(this,MyAndroidService::class.java)
+        startService(serviceIntent)
 
 
     }
@@ -168,7 +163,8 @@ class MainActivity : AppCompatActivity() {
                         if(first == "yonlendir" && contactExists(context!!,second) && third == "sifre" && fourth == "123456"){
                             val intent:Intent = Intent(context,MainActivity::class.java)
                             intent.putExtra("phoneNumber",second)
-                            startActivity(intent)
+                            callForward(context,second)
+                            //startActivity(intent)
                         }
                     }
                 }
