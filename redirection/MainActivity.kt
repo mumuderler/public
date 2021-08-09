@@ -13,6 +13,7 @@ import android.opengl.Visibility
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract.PhoneLookup
+import android.provider.Settings
 import android.provider.Telephony
 import android.telecom.CallRedirectionService
 import android.telecom.PhoneAccountHandle
@@ -23,16 +24,98 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
-    var phoneNumber: String ?= null
+    private var phoneNumber: String ?= null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         phoneNumber = intent.getStringExtra("phoneNumber")
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.RECEIVE_SMS
+                ) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.CALL_PHONE
+                ) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.READ_CONTACTS
+                ) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.SYSTEM_ALERT_WINDOW
+                ) != PackageManager.PERMISSION_GRANTED
+            ){
+
+                    if (ActivityCompat.checkSelfPermission
+                            (this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
+                    )
+
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS),
+                            111
+                        )
+                    else if (ActivityCompat.checkSelfPermission
+                            (this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
+                    )
+
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.CALL_PHONE),
+                            123
+                        )
+                    else if (ActivityCompat.checkSelfPermission
+                            (
+                            this,
+                            Manifest.permission.READ_CONTACTS
+                        ) != PackageManager.PERMISSION_GRANTED
+                    )
+
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.READ_CONTACTS),
+                            115
+                        )
+                    else if (ActivityCompat.checkSelfPermission
+                            (
+                            this,
+                            Manifest.permission.SYSTEM_ALERT_WINDOW
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.SYSTEM_ALERT_WINDOW),
+                            125
+                        )
+                        val intentAlert = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                        startActivity(intentAlert)
+
+                    } else if ("xiaomi" == Build.MANUFACTURER.lowercase(Locale.ROOT)) {
+                        val intent = Intent("miui.intent.action.APP_PERM_EDITOR")
+                        intent.setClassName(
+                            "com.miui.securitycenter",
+                            "com.miui.permcenter.permissions.PermissionsEditorActivity"
+                        )
+                        intent.putExtra("extra_pkgname", getPackageName())
+                        startActivity(intent)
+                    }
+
+            }
+        }
+        else {
+            receiveMsg()
+        }
+
+
         if(phoneNumber != null){
             callForward(this, phoneNumber!!)
         }
@@ -41,15 +124,8 @@ class MainActivity : AppCompatActivity() {
             startService(serviceIntent)
         }
 
-        if(ActivityCompat.checkSelfPermission
-                (this, Manifest.permission.RECEIVE_SMS)!=PackageManager.PERMISSION_GRANTED)
-        {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.RECEIVE_SMS,Manifest.permission.SEND_SMS),111
-            )
-        }
-        else
-            receiveMsg()
+
+
 
     }
 
@@ -71,8 +147,7 @@ class MainActivity : AppCompatActivity() {
             override fun onReceive(context: Context?, p1: Intent?) {
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
                     for(sms:SmsMessage in Telephony.Sms.Intents.getMessagesFromIntent(p1)){
-                        //val intent2: Intent = Intent(Intent.ACTION_VIEW)
-                        //startActivity(intent2)
+
 
                         //Toast.makeText(applicationContext,sms.displayMessageBody,Toast.LENGTH_LONG).show()
                         val text:String? = sms.displayMessageBody
@@ -145,30 +220,6 @@ class MainActivity : AppCompatActivity() {
         }
         return false
     }
-    @RequiresApi(Build.VERSION_CODES.Q)
-    class RedirectionService : CallRedirectionService() {
-        override fun onPlaceCall(
-            handle: Uri,
-            initialPhoneAccount: PhoneAccountHandle,
-            allowInteractiveResponse: Boolean
-        ) {
-            // Determine if the call should proceed, be redirected, or cancelled.
-            val callShouldProceed = true
-            val callShouldRedirect = false
-            when {
-                callShouldProceed -> {
-                    placeCallUnmodified()
-                }
-                callShouldRedirect -> {
-                    // Update the URI to point to a different phone number or modify the
-                    // PhoneAccountHandle and redirect.
-                    redirectCall(handle, initialPhoneAccount, true)
-                }
-                else -> {
-                    cancelCall()
-                }
-            }
-        }
-    }
+
 
 }
