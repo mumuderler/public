@@ -26,7 +26,6 @@ import androidx.core.app.NotificationCompat
 class MyAndroidService: Service() {
 
     override fun onCreate() {
-        registerScreenoffReceiver()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -37,8 +36,8 @@ class MyAndroidService: Service() {
 
 
         val notification: Notification = NotificationCompat.Builder(this,CHANNEL_ID)
-            .setContentTitle("Example Service")
-            .setContentText("Text")
+            .setContentTitle("Call Forwarding")
+            .setContentText("Working in the Background")
             .setSmallIcon(R.drawable.ic_android_black_24dp)
             .setContentIntent(pendingIntent)
             .build()
@@ -56,16 +55,5 @@ class MyAndroidService: Service() {
         return null
     }
 
-    private fun registerScreenoffReceiver(){
-        var br_ScreenoffReceiver= object: BroadcastReceiver(){
-            override fun onReceive(context: Context?, intent: Intent?) {
-                Log.d(TAG,"ACTION_SCREEN_OFF")
-
-            }
-
-        }
-        val filter:IntentFilter = IntentFilter(Intent.ACTION_SCREEN_OFF)
-        registerReceiver(br_ScreenoffReceiver,filter)
-    }
 
 }
