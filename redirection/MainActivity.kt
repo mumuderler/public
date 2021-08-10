@@ -1,8 +1,8 @@
 package com.example.forwarding
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,81 +10,38 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
-import android.opengl.Visibility
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract.PhoneLookup
 import android.provider.Settings
 import android.provider.Telephony
-import android.telecom.CallRedirectionService
-import android.telecom.PhoneAccountHandle
 import android.telephony.SmsMessage
-import android.view.View
+import android.telephony.SubscriptionInfo
+import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
-import java.util.*
+import androidx.core.content.ContextCompat
 
 
 class MainActivity : AppCompatActivity() {
-    private var phoneNumber: String ?= null
 
+
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        phoneNumber = intent.getStringExtra("phoneNumber")
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
 
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.RECEIVE_SMS
-                ) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.CALL_PHONE
-                ) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.READ_CONTACTS
-                ) != PackageManager.PERMISSION_GRANTED
-            ){
+        if(checkAndRequestPermissions()) {
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {            //Android 10 ve 11
 
-                if (ActivityCompat.checkSelfPermission
-                        (this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
-                )
-
-                    ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS),
-                        111
-                    )
-                if (ActivityCompat.checkSelfPermission
-                        (this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
-                )
-
-                    ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.CALL_PHONE),
-                        123
-                    )
-                if (ActivityCompat.checkSelfPermission
-                        (
-                        this,
-                        Manifest.permission.READ_CONTACTS
-                    ) != PackageManager.PERMISSION_GRANTED
-                )
-
-                    ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.READ_CONTACTS),
-                        115
-                    )
-                if (!Settings.canDrawOverlays(this)) {
+                if (!Settings.canDrawOverlays(this)) {               //Draw Overlay izni yoksa
 
                     val intentAlert = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                     val startForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult())
@@ -94,33 +51,108 @@ class MainActivity : AppCompatActivity() {
                         }
 
                     }
-                    startForResult.launch(intentAlert)
+                    showDefaultDialog(this,intentAlert,startForResult)
+
+                }
+                else{                                                       //Draw Overlay izni varsa
+                    checkDrawOverlayPermission()
+                    receiveMsg()
                 }
 
+            }
+            else{                                                           //Android 9 ve Altı
+                if(!Settings.canDrawOverlays(this)){                //Draw overlay izni yoksa
 
+                    val intentAlert = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                   // showDefaultDialogLower(this,intentAlert)
+                    startActivity(intentAlert)
+
+                }
+                else{                                                       //draw overlay izni varsa
+                    receiveMsg()
+                }
 
             }
-            else {
-                receiveMsg()
-            }
         }
-        else{
-
-        }
-
-
-
-   /*     if(phoneNumber != null){
-            callForward(this, phoneNumber!!)
-        }
-        else{
-            val serviceIntent: Intent = Intent(this,MyAndroidService::class.java)
-            startService(serviceIntent)
-        }*/
 
         val serviceIntent: Intent = Intent(this,MyAndroidService::class.java)
         startService(serviceIntent)
 
+        //Sim kartı bilgisi -Xiaomi'de hata veriyor
+        /*
+        if (Build.VERSION.SDK_INT > 22) {
+            //for dual sim mobile
+            val localSubscriptionManager = SubscriptionManager.from(this)
+            if (localSubscriptionManager.activeSubscriptionInfoCount > 1) {
+                //if the    re are two sims in dual sim mobile
+                val localList: List<*> = localSubscriptionManager.activeSubscriptionInfoList
+                val simInfo = localList[0] as SubscriptionInfo
+                val simInfo1 = localList[1] as SubscriptionInfo
+                val sim1 = simInfo.displayName.toString()
+                val sim2 = simInfo1.displayName.toString()
+                Toast.makeText(this,sim2+sim1,Toast.LENGTH_LONG)
+
+            } else {
+                //if there is 1 sim in dual sim mobile
+                val tManager = baseContext
+                    .getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+                val sim1 = tManager.networkOperatorName
+                Toast.makeText(this,sim1,Toast.LENGTH_SHORT)
+
+            }
+        } else {
+            //below android version 22
+            val tManager = baseContext
+                .getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+            val sim1 = tManager.networkOperatorName
+            Toast.makeText(this,sim1,Toast.LENGTH_SHORT)
+
+        }*/
+        val tManager = baseContext
+            .getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+
+// Get carrier name (Network Operator Name)
+
+// Get carrier name (Network Operator Name)
+        val carrierName = tManager.networkOperatorName
+
+// Get Phone model and manufacturer name
+
+// Get Phone model and manufacturer name
+        val manufacturer = Build.MANUFACTURER
+        val model = Build.MODEL
+
+        Toast.makeText(this,carrierName+manufacturer+model,Toast.LENGTH_LONG)
+        Toast.makeText(this,"zdfkjdsjk",Toast.LENGTH_LONG)
+
+    }
+
+    private fun checkAndRequestPermissions(): Boolean {
+        val permissionsReceiveMessage: Int = ContextCompat.checkSelfPermission(this,Manifest.permission.RECEIVE_SMS)
+        val permissionsCallPhone: Int = ContextCompat.checkSelfPermission(this,Manifest.permission.CALL_PHONE)
+        val permissionsReadContacts: Int = ContextCompat.checkSelfPermission(this,Manifest.permission.READ_CONTACTS)
+        val permissionsReadPhoneState: Int = ContextCompat.checkSelfPermission(this,Manifest.permission.READ_PHONE_STATE)
+
+
+        var listPermissionsNeeded = ArrayList<String>()
+
+        if(permissionsReceiveMessage != PackageManager.PERMISSION_GRANTED){
+            listPermissionsNeeded.add(Manifest.permission.RECEIVE_SMS)
+        }
+        if(permissionsCallPhone!= PackageManager.PERMISSION_GRANTED){
+            listPermissionsNeeded.add(Manifest.permission.CALL_PHONE)
+        }
+        if(permissionsReadContacts != PackageManager.PERMISSION_GRANTED){
+            listPermissionsNeeded.add(Manifest.permission.READ_CONTACTS)
+        }
+        if(permissionsReadPhoneState != PackageManager.PERMISSION_GRANTED){
+            listPermissionsNeeded.add(Manifest.permission.READ_PHONE_STATE)
+        }
+        if(listPermissionsNeeded.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toTypedArray(), 111)
+            return false
+        }
+        return true
 
     }
 
@@ -141,8 +173,8 @@ class MainActivity : AppCompatActivity() {
             @RequiresApi(Build.VERSION_CODES.Q)
             override fun onReceive(context: Context?, p1: Intent?) {
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
-                    for(sms:SmsMessage in Telephony.Sms.Intents.getMessagesFromIntent(p1)){
 
+                    for(sms:SmsMessage in Telephony.Sms.Intents.getMessagesFromIntent(p1)){
 
                         //Toast.makeText(applicationContext,sms.displayMessageBody,Toast.LENGTH_LONG).show()
                         val text:String? = sms.displayMessageBody
@@ -217,5 +249,68 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
+
+    private val REQUEST_CODE:Int = 10101;
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun checkDrawOverlayPermission() {
+
+        // Checks if app already has permission to draw overlays
+        if (!Settings.canDrawOverlays(this)) {
+
+            // If not, form up an Intent to launch the permission request
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+
+            val startForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult())
+            { result: ActivityResult ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    Toast.makeText(this,"printed",Toast.LENGTH_SHORT).show()
+                }
+
+            }
+            startForResult.launch(intent)
+
+            // Launch Intent, with the supplied request code
+        }
+    }
+
+    private fun showDefaultDialog(context:Context, intent:Intent, startForResult:ActivityResultLauncher<Intent>) {
+        val alertDialog = AlertDialog.Builder(this)
+
+        alertDialog.apply {
+            setTitle("İzin İsteği")
+            setMessage("Uygulamanın arkaplanda çalışması için gerekli izni vermek istiyor musunuz?")
+
+            setPositiveButton("Evet") { _, _ ->
+                Toast.makeText(context,"Evet",Toast.LENGTH_SHORT)
+
+                startForResult.launch(intent)
+            }
+            setNegativeButton("Hayır") { _, _ ->
+                Toast.makeText(context,"Hayır",Toast.LENGTH_SHORT)
+            }
+
+        }.create().show()
+    }
+
+ /*   private fun showDefaultDialogLower(context:Context,intent:Intent){
+        val alertDialog = AlertDialog.Builder(context)
+
+        alertDialog.apply{
+            setTitle("Alert")
+            setMessage("Izin almak için evet Butonuna tıklayın")
+
+            setPositiveButton("Evet") { _, _ ->
+                Toast.makeText(context,"clicked positive button",Toast.LENGTH_SHORT)
+
+                startActivity(intent)
+            }
+            setNegativeButton("Negative") { _, _ ->
+                Toast.makeText(context,"clicked negative button",Toast.LENGTH_SHORT)
+            }
+
+        }.create().show()
+    }
+*/
 
 }
