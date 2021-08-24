@@ -34,11 +34,10 @@ class MyAndroidService: Service() {
         val notificationIntent:Intent = Intent(this,MainActivity::class.java)
         val pendingIntent:PendingIntent = PendingIntent.getActivity(this,0,notificationIntent,0)
 
-
         val notification: Notification = NotificationCompat.Builder(this,CHANNEL_ID)
-            .setContentTitle("Call Forwarding")
-            .setContentText("Working in the Background")
-            .setSmallIcon(R.drawable.ic_android_black_24dp)
+            .setContentTitle("SMS bekleniyor")
+            .setContentText("Uygulama arkaplanda çalışıyor")
+            .setSmallIcon(R.drawable.ic_baseline_phone_forwarded_24)
             .setContentIntent(pendingIntent)
             .build()
 
