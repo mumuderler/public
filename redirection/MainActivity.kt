@@ -18,6 +18,8 @@ import android.provider.Settings
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -26,9 +28,21 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.asLiveData
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.w3c.dom.Text
+import java.util.prefs.Preferences
 
 
 class MainActivity : AppCompatActivity() {
+
+    lateinit var tvLastGivenPassword: TextView
+    lateinit var etPassword: EditText
+
+    lateinit var userManager: UserManager
+    var password = ""
+
     var br = object: BroadcastReceiver(){
         @RequiresApi(Build.VERSION_CODES.Q)
         override fun onReceive(context: Context?, p1: Intent?) {
@@ -36,7 +50,6 @@ class MainActivity : AppCompatActivity() {
 
                 for(sms:SmsMessage in Telephony.Sms.Intents.getMessagesFromIntent(p1)){
 
-                    //Toast.makeText(applicationContext,sms.displayMessageBody,Toast.LENGTH_LONG).show()
                     val text:String? = sms.displayMessageBody
                     var delimiter = " "
 
@@ -46,14 +59,13 @@ class MainActivity : AppCompatActivity() {
                     val third = parts?.get(2).toString()   //sifre anahtar kelime
                     val fourth = parts?.get(3).toString()  //sifre
 
-                    //Toast.makeText(applicationContext,first,Toast.LENGTH_LONG).show()
-                    //Toast.makeText(applicationContext,second,Toast.LENGTH_LONG).show()
-                    //Toast.makeText(applicationContext,third,Toast.LENGTH_LONG).show()
                     Toast.makeText(applicationContext,fourth,Toast.LENGTH_LONG).show()
 
+                    val lastGivenPassword = findViewById<TextView>(R.id.lastGivenPassword).text.toString()
+
                     //yonlendirme if'i
-                    if(first == "yonlendir" && contactExists(context!!,second) && third == "sifre" && fourth == "123456"){
-                        val intent:Intent = Intent(context,MainActivity::class.java)
+                    if(first == "yonlendir" && contactExists(context!!,second) && third == "sifre" && fourth.equals(lastGivenPassword)){
+                        //val intent:Intent = Intent(context,MainActivity::class.java)
                         callForward(context,second)
                         //startActivity(intent)
                     }
@@ -67,8 +79,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val btn = findViewById<Button>(R.id.btn_stop)
+        val btn = findViewById<Button>(R.id.btn_action)
         registerReceiver(br, IntentFilter("android.provider.Telephony.SMS_RECEIVED"))
+
+        val btnSave = findViewById<Button>(R.id.btn_save)
+        tvLastGivenPassword = findViewById(R.id.lastGivenPassword)
+
+        userManager = UserManager(this)
+
+        buttonSave(btnSave)
+
+        observeData()
 
         if(checkPermissions()) {
             val key = intent.getBooleanExtra("key",false)
@@ -156,7 +177,6 @@ class MainActivity : AppCompatActivity() {
         }
         /*if(requestCode==111 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
             receiveMsg()
-
         }*/
     }
 
@@ -295,7 +315,7 @@ class MainActivity : AppCompatActivity() {
 
             }
             else{                                                       //draw overlay izni varsa
-             }
+            }
 
         }
     }
@@ -319,5 +339,34 @@ class MainActivity : AppCompatActivity() {
 
         return listPermissionsNeeded.isEmpty()
 
+    }
+
+    private fun buttonSave(btnSave:Button){
+        btnSave.setOnClickListener{
+            var tvLastGivenPassword = findViewById<TextView>(R.id.lastGivenPassword)
+            etPassword = findViewById<EditText>(R.id.password)
+            val pass = etPassword.text.toString()
+            if(pass.equals("")){
+                buttonSave(btnSave)
+            }
+            else{
+                tvLastGivenPassword.text = pass
+
+                GlobalScope.launch {
+                    userManager.storeUser(pass)
+                }}
+
+        }
+    }
+
+    private fun observeData() {
+        // Updates name
+        // every time user name changes it will be observed by userNameFlow
+        // here it refers to the value returned from the usernameFlow function
+        // of UserManager class
+        userManager.userPasswordFlow.asLiveData().observe(this) {
+            password = it!!
+            tvLastGivenPassword.text = it.toString()
+        }
     }
 }
